@@ -55,7 +55,7 @@ def backtrack_path(a,b,trace,n,m):
             prev_k=k-1
         prev_x=V[prev_k]
         prev_y=prev_x-prev_k
-        while x>prev_x and y>prev_y and x>0 and y>0 and a[x-1]==b[y-1]:
+        while x>prev_x and y>prev_y:
             x-=1
             y-=1
             edits.append(("keep",a[x]))
@@ -71,11 +71,35 @@ def backtrack_path(a,b,trace,n,m):
 
 def main() -> int:
     if len(sys.argv) != 4 or sys.argv[1] not in ("lines", "highlight"):
-        print("usage: main.py lines|highlight A_PATH B_PATH", file=sys.stderr)
+        sys.stderr.write("usage: main.py lines|highlight A_PATH B_PATH\n")
         return 2
-    command, a_path, b_path = sys.argv[1:]
-    # TODO: read both files as raw bytes (brief, Section 2), then print the listing.
-    return 0
 
+    mode, path_a, path_b = sys.argv[1:]
+    lines_a = read_file(path_a)
+    lines_b = read_file(path_b)
+
+    line_edits = myers_algo(lines_a, lines_b)
+    i=0
+    n=len(line_edits)
+    while i<n:
+        op,val=line_edits[i]
+        if op=="keep":
+            sys.stdout.buffer.write(b" "+val+b"\n")
+            i+=1
+        else:
+            dels,inss=[],[]
+            while i<n and line_edits[i][0]!="keep":
+                cop,cval=line_edits[i]
+                if cop=="del":
+                    dels.append(cval)
+                else:
+                    inss.append(cval)
+                i+=1
+            for d in dels:
+                sys.stdout.buffer.write(b"-"+d+b"\n")
+            for ins in inss:
+                sys.stdout.buffer.write(b"+"+ins+b"\n")
+
+    return 0
 
 raise SystemExit(main())
