@@ -17,101 +17,105 @@ def read_file(path):
     return lines
 
 def myers_algo(a,b):
-    na=len(a)
-    nb=len(b)
+    n=len(a)
+    m=len(b)
     edits=[]
 
-    def middle_snake(a0,a1,b0,b1):
-        n=a1-a0
-        m=b1-b0
-        delta=n-m
-        maxd=(n+m+1)//2
-        vf={1:0}
-        vb={1:0}
+    offset=(n+m)//2+2
+    v_fwd=[-1]*(2*offset)
+    v_bwd=[-1]*(2*offset)
 
-        for d in range(maxd+1):
+    def find_middle_snake(a_lo,a_hi,b_lo,b_hi):
+        n=a_hi-a_lo
+        m=b_hi-b_lo
+        delta=n-m
+        max_d=(n+m+1)//2
+        v_fwd[offset+1]=0
+        v_bwd[offset+1]=0
+
+        for d in range(max_d+1):
             for k in range(-d,d+1,2):
-                if k==-d or (k!=d and vf.get(k-1,-1)<vf.get(k+1,-1)):
-                    x=vf[k+1]
+                if k==-d or (k!=d and v_fwd[offset+k-1]<v_fwd[offset+k+1]):
+                    x=v_fwd[offset+k+1]
                 else:
-                    x=vf[k-1]+1
+                    x=v_fwd[offset+k-1]+1
                 y=x-k
-                x0=x
-                y0=y
-                while x<n and y<m and a[a0+x]==b[b0+y]:
+                x1=x
+                y1=y
+                while x<n and y<m and a[a_lo+x]==b[b_lo+y]:
                     x+=1
                     y+=1
-                vf[k]=x
-                inv=delta-k
-                if delta%2!=0 and -(d-1)<=inv<=d-1 and x+vb.get(inv,-1)>=n:
-                    return (2*d-1,a0+x0,b0+y0,a0+x,b0+y)
+                v_fwd[offset+k]=x
+                rev_k=delta-k
+                if delta%2!=0 and -(d-1)<=rev_k<=d-1 and x+v_bwd[offset+rev_k]>=n:
+                    return (2*d-1,a_lo+x1,b_lo+y1,a_lo+x,b_lo+y)
             for k in range(-d,d+1,2):
-                if k==-d or (k!=d and vb.get(k-1,-1)<vb.get(k+1,-1)):
-                    u=vb[k+1]
+                if k==-d or (k!=d and v_bwd[offset+k-1]<v_bwd[offset+k+1]):
+                    x=v_bwd[offset+k+1]
                 else:
-                    u=vb[k-1]+1
-                w=u-k
-                u0=u
-                w0=w
-                while u<n and w<m and a[a1-1-u]==b[b1-1-w]:
-                    u+=1
-                    w+=1
-                vb[k]=u
-                inv=delta-k
-                if delta%2==0 and -d<=inv<=d and u+vf.get(inv,-1)>=n:
-                    return (2*d,a1-u,b1-w,a1-u0,b1-w0)
+                    x=v_bwd[offset+k-1]+1
+                y=x-k
+                x1=x
+                y1=y
+                while x<n and y<m and a[a_hi-1-x]==b[b_hi-1-y]:
+                    x+=1
+                    y+=1
+                v_bwd[offset+k]=x
+                rev_k=delta-k
+                if delta%2==0 and -d<=rev_k<=d and x+v_fwd[offset+rev_k]>=n:
+                    return (2*d,a_hi-x,b_hi-y,a_hi-x1,b_hi-y1)
         return None
 
-    def rec(a0,a1,b0,b1):
-        n=a1-a0
-        m=b1-b0
+    def diff_range(a_lo,a_hi,b_lo,b_hi):
+        n=a_hi-a_lo
+        m=b_hi-b_lo
         if n==0:
-            for j in range(b0,b1):
+            for j in range(b_lo,b_hi):
                 edits.append(("ins",b[j]))
             return
         if m==0:
-            for i in range(a0,a1):
+            for i in range(a_lo,a_hi):
                 edits.append(("del",a[i]))
             return
 
-        d,xs,ys,xe,ye=middle_snake(a0,a1,b0,b1)
-        if d>1:
-            rec(a0,xs,b0,ys)
-            i=xs
-            j=ys
-            while i<xe and j<ye:
+        dist,x1,y1,x2,y2=find_middle_snake(a_lo,a_hi,b_lo,b_hi)
+        if dist>1:
+            diff_range(a_lo,x1,b_lo,y1)
+            i=x1
+            j=y1
+            while i<x2 and j<y2:
                 edits.append(("keep",a[i]))
                 i+=1
                 j+=1
-            rec(xe,a1,ye,b1)
+            diff_range(x2,a_hi,y2,b_hi)
         else:
-            i=a0
-            j=b0
-            while i<a1 and j<b1 and a[i]==b[j]:
+            i=a_lo
+            j=b_lo
+            while i<a_hi and j<b_hi and a[i]==b[j]:
                 edits.append(("keep",a[i]))
                 i+=1
                 j+=1
-            if a1-i>b1-j:
+            if a_hi-i>b_hi-j:
                 edits.append(("del",a[i]))
                 i+=1
-            elif b1-j>a1-i:
+            elif b_hi-j>a_hi-i:
                 edits.append(("ins",b[j]))
                 j+=1
-            while i<a1 and j<b1:
+            while i<a_hi and j<b_hi:
                 edits.append(("keep",a[i]))
                 i+=1
                 j+=1
 
-    p=0
-    while p<na and p<nb and a[p]==b[p]:
-        p+=1
-    s=0
-    while s<na-p and s<nb-p and a[na-1-s]==b[nb-1-s]:
-        s+=1
-    for i in range(p):
+    prefix=0
+    while prefix<n and prefix<m and a[prefix]==b[prefix]:
+        prefix+=1
+    suffix=0
+    while suffix<n-prefix and suffix<m-prefix and a[n-1-suffix]==b[m-1-suffix]:
+        suffix+=1
+    for i in range(prefix):
         edits.append(("keep",a[i]))
-    rec(p,na-s,p,nb-s)
-    for i in range(na-s,na):
+    diff_range(prefix,n-suffix,prefix,m-suffix)
+    for i in range(n-suffix,n):
         edits.append(("keep",a[i]))
     return edits
 
