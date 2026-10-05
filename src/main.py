@@ -17,8 +17,8 @@ def read_file(path):
     return lines
 
 def myers_algo(a,b):
-    # linear-space Myers: recursively split on the middle snake. O(ND) time, O(N) space.
-    # backward search is just a forward search on the reversed slices.
+    na=len(a)
+    nb=len(b)
     edits=[]
 
     def middle_snake(a0,a1,b0,b1):
@@ -30,7 +30,6 @@ def myers_algo(a,b):
         vb={1:0}
 
         for d in range(maxd+1):
-            # forward from (a0,b0)
             for k in range(-d,d+1,2):
                 if k==-d or (k!=d and vf.get(k-1,-1)<vf.get(k+1,-1)):
                     x=vf[k+1]
@@ -46,7 +45,6 @@ def myers_algo(a,b):
                 inv=delta-k
                 if delta%2!=0 and -(d-1)<=inv<=d-1 and x+vb.get(inv,-1)>=n:
                     return (2*d-1,a0+x0,b0+y0,a0+x,b0+y)
-            # backward from (a1,b1), i.e. forward on the reversed slices
             for k in range(-d,d+1,2):
                 if k==-d or (k!=d and vb.get(k-1,-1)<vb.get(k+1,-1)):
                     u=vb[k+1]
@@ -87,8 +85,6 @@ def myers_algo(a,b):
                 j+=1
             rec(xe,a1,ye,b1)
         else:
-            # d<=1: at most one edit over a straight run. common prefix, the lone
-            # del/ins, then the rest (guaranteed to match since d<=1).
             i=a0
             j=b0
             while i<a1 and j<b1 and a[i]==b[j]:
@@ -106,7 +102,17 @@ def myers_algo(a,b):
                 i+=1
                 j+=1
 
-    rec(0,len(a),0,len(b))
+    p=0
+    while p<na and p<nb and a[p]==b[p]:
+        p+=1
+    s=0
+    while s<na-p and s<nb-p and a[na-1-s]==b[nb-1-s]:
+        s+=1
+    for i in range(p):
+        edits.append(("keep",a[i]))
+    rec(p,na-s,p,nb-s)
+    for i in range(na-s,na):
+        edits.append(("keep",a[i]))
     return edits
 
 def format_ranges(indices):
